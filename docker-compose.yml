@@ -2,8 +2,12 @@ version: "3.9"
 services:
   aparts:
     build: .
+    environment:
+      - BOT_API_KEY=
+      - CHAT_ID=
+      - CITY=
     env_file:
-      - aparts.env
+      - .env
     depends_on:
       - redis
     restart: unless-stopped

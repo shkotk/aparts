@@ -84,7 +84,6 @@ def update_max_refresh_time(value: datetime):
     REDIS_CONNECTION.set(MAX_REFRESH_TIME_REDIS_KEY, str_value)
 
 
-
 def post_new_ads():
     start_time = time.time()
     max_refresh_time = get_max_refresh_time()
