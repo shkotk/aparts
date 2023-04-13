@@ -101,13 +101,15 @@ def post_new_ads():
 
         response = requests.get(url)
 
-        if (response.status_code == 429):
+        if response.status_code == 429:
             time.sleep(60)
             response = requests.get(url)
 
         response.raise_for_status()
 
-        update_max_refresh_time(ad.refreshed)
+        if ad.refreshed > max_refresh_time:
+            max_refresh_time = ad.refreshed
+            update_max_refresh_time(ad.refreshed)
 
         log(f'Sent "{ad.url}"')
 
