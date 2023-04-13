@@ -27,6 +27,7 @@ REDIS_CONNECTION = redis.Redis(host=REDIS_HOST, port=6379, decode_responses=True
 def log(message: str):
     print(f'{datetime.utcnow().isoformat()}: {message}')
 
+
 @dataclass
 class Ad:
     url: str
@@ -85,6 +86,7 @@ def update_max_refresh_time(value: datetime):
 
 
 def post_new_ads():
+    start_time = time.time()
     max_refresh_time = get_max_refresh_time()
 
     new_ads = []
@@ -112,6 +114,8 @@ def post_new_ads():
             update_max_refresh_time(ad.refreshed)
 
         log(f'Sent "{ad.url}"')
+
+    log(f'Sent {len(new_ads)} new ads in {time.time()-start_time:.3f} seconds')
 
 
 if __name__ == '__main__':
