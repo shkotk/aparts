@@ -103,7 +103,7 @@ def post_new_ads():
         if ad.refreshed > max_refresh_time:
             new_ads.append(ad)
 
-    log(f'Got {len(new_ads)} from OLX in {time.time()-fetch_start_time:.3f} seconds')
+    log(f'Got {len(new_ads)} new ad(s) from OLX in {time.time()-fetch_start_time:.3f} seconds')
 
     log(f'Starting sending new ads to chat')
     send_start_time = time.time()
@@ -124,7 +124,7 @@ def post_new_ads():
             max_refresh_time = ad.refreshed
             update_max_refresh_time(ad.refreshed)
 
-    log(f'Sent {len(new_ads)} new ads in {time.time()-send_start_time:.3f} seconds')
+    log(f'Sent {len(new_ads)} new ad(s) in {time.time()-send_start_time:.3f} seconds')
 
 
 if __name__ == '__main__':
