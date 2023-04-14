@@ -128,7 +128,7 @@ def post_new_ads():
 
 
 if __name__ == '__main__':
-    log(f'Application is starting\nQUERY_URL={QUERY_URL}\POLL_INTERVAL={POLL_INTERVAL}')
+    log(f'Application is starting\nQUERY_URL={QUERY_URL}\nPOLL_INTERVAL={POLL_INTERVAL}')
 
     while True:
         post_new_ads()
