@@ -28,6 +28,7 @@ MAX_REFRESH_TIME_REDIS_KEY = f'MRT_{CITY}_{CHAT_ID}'
 
 REDIS_CONNECTION = redis.Redis(host=REDIS_HOST, port=6379, decode_responses=True)
 
+
 def log(message: str):
     print(f'{datetime.utcnow().isoformat()}: {message}')
 
@@ -89,8 +90,10 @@ def update_max_refresh_time(value: datetime):
 
 
 def post_new_ads():
-    start_time = time.time()
     max_refresh_time = get_max_refresh_time()
+
+    log(f'Starting search for ads newer than {max_refresh_time.isoformat()}')
+    fetch_start_time = time.time()
 
     new_ads = []
     for ad in get_ads():
@@ -99,6 +102,11 @@ def post_new_ads():
 
         if ad.refreshed > max_refresh_time:
             new_ads.append(ad)
+
+    log(f'Got {len(new_ads)} from OLX in {time.time()-fetch_start_time:.3f} seconds')
+
+    log(f'Starting sending new ads to chat')
+    send_start_time = time.time()
 
     for ad in reversed(new_ads):
         encoded_text = urllib.parse.quote(str(ad))
@@ -116,13 +124,11 @@ def post_new_ads():
             max_refresh_time = ad.refreshed
             update_max_refresh_time(ad.refreshed)
 
-        log(f'Sent "{ad.url}"')
-
-    log(f'Sent {len(new_ads)} new ads in {time.time()-start_time:.3f} seconds')
+    log(f'Sent {len(new_ads)} new ads in {time.time()-send_start_time:.3f} seconds')
 
 
 if __name__ == '__main__':
-    log('Application started')
+    log(f'Application is starting\nQUERY_URL={QUERY_URL}\POLL_INTERVAL={POLL_INTERVAL}')
 
     while True:
         post_new_ads()
