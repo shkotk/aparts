@@ -15,12 +15,12 @@ from dataclasses import dataclass
 BOT_API_KEY = os.environ['BOT_API_KEY']
 CHAT_ID = os.environ['CHAT_ID']
 CITY = os.environ['CITY']
-QUERY_PARAMS = os.environ.get('QUERY_PARAMS', None)
+QUERY_PARAMS = os.environ.get('QUERY_PARAMS', '')
 POLL_INTERVAL = int(os.environ['POLL_INTERVAL']) # seconds
 REDIS_HOST = os.environ['REDIS_HOST']
 
 QUERY_URL = f'https://www.olx.ua/d/uk/nedvizhimost/kvartiry/dolgosrochnaya-arenda-kvartir/{CITY}/?search[order]=created_at:desc'
-if QUERY_PARAMS is not None:
+if QUERY_PARAMS != '':
     QUERY_URL += '&{QUERY_PARAMS}'
 
 SEND_MESSAGE_URL_FORMAT = f'https://api.telegram.org/bot{BOT_API_KEY}/sendMessage?chat_id={CHAT_ID}&text={{text}}'
