@@ -19,12 +19,14 @@ QUERY_PARAMS = os.environ.get('QUERY_PARAMS', '')
 POLL_INTERVAL = int(os.environ['POLL_INTERVAL']) # seconds
 REDIS_HOST = os.environ['REDIS_HOST']
 
+
 QUERY_URL = f'https://www.olx.ua/d/uk/nedvizhimost/kvartiry/dolgosrochnaya-arenda-kvartir/{CITY}/?search[order]=created_at:desc'
 if QUERY_PARAMS != '':
-    QUERY_URL += '&{QUERY_PARAMS}'
+    QUERY_URL += f'&{QUERY_PARAMS}'
 
 SEND_MESSAGE_URL_FORMAT = f'https://api.telegram.org/bot{BOT_API_KEY}/sendMessage?chat_id={CHAT_ID}&text={{text}}'
 MAX_REFRESH_TIME_REDIS_KEY = f'MRT_{CITY}_{CHAT_ID}'
+
 
 REDIS_CONNECTION = redis.Redis(host=REDIS_HOST, port=6379, decode_responses=True)
 
