@@ -31,6 +31,18 @@ MAX_REFRESH_TIME_REDIS_KEY = f'MRT_{CITY}_{CHAT_ID}'
 REDIS_CONNECTION = redis.Redis(host=REDIS_HOST, port=6379, decode_responses=True)
 
 
+HIGHLIGHT_ENV_PREFIX = 'HIGHLIGHT_'
+HIGHLIGHT_RULES = {}
+# example config: HIGHLIGHT_pets=no:🤡|yes_cat:🐈|yes_small_dog:🌭
+for envKey, envValue in os.environ.items():
+    if envKey[:len(HIGHLIGHT_ENV_PREFIX)] == HIGHLIGHT_ENV_PREFIX:
+        paramKey = envKey[len(HIGHLIGHT_ENV_PREFIX):]
+        HIGHLIGHT_RULES[paramKey] = {}
+        for rule in envValue.split('|'):
+            ruleIf, ruleThen = rule.split(':')
+            HIGHLIGHT_RULES[paramKey][ruleIf] = ruleThen
+
+
 def log(message: str):
     print(f'{datetime.utcnow().isoformat()}: {message}')
 
@@ -41,9 +53,33 @@ class Ad:
     created: datetime
     refreshed: datetime
     is_promoted: bool
+    highlights: str
 
     def __str__(self) -> str:
-        return f'{self.url}\nCreated: {self.created}\nRefreshed: {self.refreshed}'
+        return f'''
+{self.url}
+Created: {self.created}
+Refreshed: {self.refreshed}
+{self.highlights}
+'''
+
+
+def extract_highlights(olxAd) -> str:
+    if len(HIGHLIGHT_RULES) == 0:
+        return ""
+
+    highlights = ""
+    for param in olxAd['params']:
+        rule = HIGHLIGHT_RULES.get(param["key"])
+        if rule is not None:
+            value = param["normalizedValue"]
+            if type(value) is list:
+                highlights += ''.join(map(lambda v: rule.get(v, ''), value))
+            else:
+                highlights += rule.get(value, '')
+
+    return highlights
+
 
 
 def get_ads():
@@ -62,14 +98,15 @@ def get_ads():
         state = json.loads(json.loads(
             f'{{"state":{state_json_string}}}')['state'])
 
-        ads = state['listing']['listing']['ads']
+        olxAds = state['listing']['listing']['ads']
 
-        for ad in ads:
+        for olxAd in olxAds:
             yield Ad(
-                url=ad['url'],
-                created=datetime.fromisoformat(ad['createdTime']),
-                refreshed=datetime.fromisoformat(ad['lastRefreshTime']),
-                is_promoted=ad['isPromoted']
+                url=olxAd['url'],
+                created=datetime.fromisoformat(olxAd['createdTime']),
+                refreshed=datetime.fromisoformat(olxAd['lastRefreshTime']),
+                is_promoted=olxAd['isPromoted'],
+                highlights=extract_highlights(olxAd),
             )
 
         if page >= state['listing']['listing']['totalPages']:
