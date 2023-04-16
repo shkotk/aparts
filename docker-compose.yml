@@ -3,10 +3,11 @@ services:
   aparts:
     build: .
     environment:
-      - BOT_API_KEY=
-      - CHAT_ID=
-      - CITY=
-      - QUERY_PARAMS=
+      BOT_API_KEY:
+      CHAT_ID:
+      CITY:
+      QUERY_PARAMS: 
+      HIGHLIGHT_RULES: 
     env_file:
       - .env
     depends_on:

@@ -7,6 +7,7 @@ import time
 import urllib.parse
 import redis
 import pytz
+import highlights
 
 from datetime import datetime
 from dataclasses import dataclass
@@ -18,6 +19,7 @@ CITY = os.environ['CITY']
 QUERY_PARAMS = os.environ.get('QUERY_PARAMS', '')
 POLL_INTERVAL = int(os.environ['POLL_INTERVAL']) # seconds
 REDIS_HOST = os.environ['REDIS_HOST']
+HIGHLIGHT_RULES_CONFIG = os.environ.get('HIGHLIGHT_RULES', '')
 
 
 QUERY_URL = f'https://www.olx.ua/d/uk/nedvizhimost/kvartiry/dolgosrochnaya-arenda-kvartir/{CITY}/?search[order]=created_at:desc'
@@ -29,18 +31,7 @@ MAX_REFRESH_TIME_REDIS_KEY = f'MRT_{CITY}_{CHAT_ID}'
 
 
 REDIS_CONNECTION = redis.Redis(host=REDIS_HOST, port=6379, decode_responses=True)
-
-
-HIGHLIGHT_ENV_PREFIX = 'HIGHLIGHT_'
-HIGHLIGHT_RULES = {}
-# example config: HIGHLIGHT_pets=no:🤡|yes_cat:🐈|yes_small_dog:🌭
-for envKey, envValue in os.environ.items():
-    if envKey[:len(HIGHLIGHT_ENV_PREFIX)] == HIGHLIGHT_ENV_PREFIX:
-        paramKey = envKey[len(HIGHLIGHT_ENV_PREFIX):]
-        HIGHLIGHT_RULES[paramKey] = {}
-        for rule in envValue.split('|'):
-            ruleIf, ruleThen = rule.split(':')
-            HIGHLIGHT_RULES[paramKey][ruleIf] = ruleThen
+HIGHLIGHT_RULES = highlights.parse_rules(json.loads(HIGHLIGHT_RULES_CONFIG))
 
 
 def log(message: str):
@@ -64,24 +55,6 @@ Refreshed: {self.refreshed}
 '''
 
 
-def extract_highlights(olxAd) -> str:
-    if len(HIGHLIGHT_RULES) == 0:
-        return ""
-
-    highlights = ""
-    for param in olxAd['params']:
-        rule = HIGHLIGHT_RULES.get(param["key"])
-        if rule is not None:
-            value = param["normalizedValue"]
-            if type(value) is list:
-                highlights += ''.join(map(lambda v: rule.get(v, ''), value))
-            else:
-                highlights += rule.get(value, '')
-
-    return highlights
-
-
-
 def get_ads():
     page = 1
     while True:
@@ -101,12 +74,16 @@ def get_ads():
         olxAds = state['listing']['listing']['ads']
 
         for olxAd in olxAds:
+            highlights = ''
+            for rule in HIGHLIGHT_RULES:
+                highlights += rule.extract(olxAd)
+
             yield Ad(
                 url=olxAd['url'],
                 created=datetime.fromisoformat(olxAd['createdTime']),
                 refreshed=datetime.fromisoformat(olxAd['lastRefreshTime']),
                 is_promoted=olxAd['isPromoted'],
-                highlights=extract_highlights(olxAd),
+                highlights=highlights,
             )
 
         if page >= state['listing']['listing']['totalPages']:
