@@ -47,7 +47,7 @@ class PropRule:
 
 
 def parse_rules(config: list) -> list:
-    if config == '':
+    if len(config) == 0:
         return []
 
     rules = []

@@ -7,7 +7,8 @@ services:
       CHAT_ID:
       CITY:
       QUERY_PARAMS:
-      HIGHLIGHT_RULES:
+      HIGHLIGHT_RULES: >
+        []
     env_file:
       - .env
     depends_on:
