@@ -81,8 +81,7 @@ class Ad:
 
 💰 *{Ad._markdown_escape(self.price)}*
 🏠 {Ad._markdown_escape(self.area)}
-➕ `{Ad._markdown_escape(self.created.isoformat())}`
-🔄 `{Ad._markdown_escape(self.refreshed.isoformat())}`
+➕ `{Ad._markdown_escape(self.created.strftime('%Y-%m-%d %H:%M'))}`
 
 {self.highlights}'''
 
