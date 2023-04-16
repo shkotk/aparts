@@ -16,17 +16,17 @@ from dataclasses import dataclass
 BOT_API_KEY = os.environ['BOT_API_KEY']
 CHAT_ID = os.environ['CHAT_ID']
 CITY = os.environ['CITY']
-QUERY_PARAMS = os.environ.get('QUERY_PARAMS', '')
+OLX_QUERY_PARAMS = os.environ.get('OLX_QUERY_PARAMS', '')
 POLL_INTERVAL = int(os.environ['POLL_INTERVAL']) # seconds
 REDIS_HOST = os.environ['REDIS_HOST']
 HIGHLIGHT_RULES_CONFIG = os.environ.get('HIGHLIGHT_RULES', '')
 
 
-QUERY_URL = f'https://www.olx.ua/d/uk/nedvizhimost/kvartiry/dolgosrochnaya-arenda-kvartir/{CITY}/?search[order]=created_at:desc'
-if QUERY_PARAMS != '':
-    QUERY_URL += f'&{QUERY_PARAMS}'
+OLX_URL = f'https://www.olx.ua/d/uk/nedvizhimost/kvartiry/dolgosrochnaya-arenda-kvartir/{CITY}/?search[order]=created_at:desc'
+if OLX_QUERY_PARAMS != '':
+    OLX_URL += f'&{OLX_QUERY_PARAMS}'
 
-SEND_MESSAGE_URL_FORMAT = f'https://api.telegram.org/bot{BOT_API_KEY}/sendMessage?chat_id={CHAT_ID}&text={{text}}'
+SEND_URL = f'https://api.telegram.org/bot{BOT_API_KEY}'
 MAX_REFRESH_TIME_REDIS_KEY = f'MRT_{CITY}_{CHAT_ID}'
 
 
@@ -42,25 +42,75 @@ def log(message: str):
 
 @dataclass
 class Ad:
+    title: str
     url: str
+    price: str
     created: datetime
     refreshed: datetime
     is_promoted: bool
+    photo_urls: list
     highlights: str
 
-    def __str__(self) -> str:
+    def to_send_query(self, chat_id: str) -> str:
+        text = self._get_text()
+        if len(self.photo_urls) == 0:
+            return f'/sendMessage?chat_id={chat_id}&text={urllib.parse.quote(text)}&parse_mode=MarkdownV2'
+        elif len(self.photo_urls) == 1:
+            encoded_photo_url = urllib.parse.quote(self.photo_urls[0])
+            return f'/sendPhoto?chat_id={chat_id}&photo={encoded_photo_url}&caption={urllib.parse.quote(text)}&parse_mode=MarkdownV2'
+        else:
+            media_json = self._get_media_json(text)
+            encoded_media_json = urllib.parse.quote(media_json)
+            return f'/sendMediaGroup?chat_id={chat_id}&media={encoded_media_json}'
+
+    def _get_media_json(self, caption: str) -> str:
+        media = []
+        for photo_url in self.photo_urls if len(self.photo_urls) <= 10 else self.photo_urls[:10]:
+            media.append({
+                    'type': 'photo',
+                    'media': photo_url,
+                })
+        media[0]['caption'] = caption
+        media[0]['parse_mode'] = 'MarkdownV2'
+        return json.dumps(media)
+
+    def _get_text(self) -> str:
         return f'''
-{self.url}
-Created: {self.created}
-Refreshed: {self.refreshed}
-{self.highlights}
-'''
+[{Ad._markdown_escape(self.title)}]({self.url})
+💰 *{Ad._markdown_escape(self.price)}*
+➕ `{Ad._markdown_escape(self.created.isoformat())}`
+🔄 `{Ad._markdown_escape(self.refreshed.isoformat())}`
+
+{self.highlights}'''
+
+    def _markdown_escape(text: str) -> str:
+        return text.translate(str.maketrans({
+            "\\": r"\\",
+            "_":  r"\_",
+            "*":  r"\*",
+            "[":  r"\[",
+            "]":  r"\]",
+            "(":  r"\(",
+            ")":  r"\)",
+            "~":  r"\~",
+            "`":  r"\`",
+            ">":  r"\>",
+            "#":  r"\#",
+            "+":  r"\+",
+            "-":  r"\-",
+            "=":  r"\=",
+            "|":  r"\|",
+            "{":  r"\{",
+            "}":  r"\}",
+            ".":  r"\.",
+            "!":  r"\!"
+        }))
 
 
 def get_ads():
     page = 1
     while True:
-        url = QUERY_URL
+        url = OLX_URL
         if page > 1:
             url += f'&page={page}'
 
@@ -81,11 +131,14 @@ def get_ads():
                 highlights += rule.extract(olxAd)
 
             yield Ad(
+                title=olxAd['title'],
                 url=olxAd['url'],
+                price=olxAd['price']['displayValue'],
                 created=datetime.fromisoformat(olxAd['createdTime']),
                 refreshed=datetime.fromisoformat(olxAd['lastRefreshTime']),
                 is_promoted=olxAd['isPromoted'],
-                highlights=highlights,
+                photo_urls=olxAd['photos'],
+                highlights=''.join(set(highlights)),
             )
 
         if page >= state['listing']['listing']['totalPages']:
@@ -127,9 +180,7 @@ def post_new_ads():
     send_start_time = time.time()
 
     for ad in reversed(new_ads):
-        encoded_text = urllib.parse.quote(str(ad))
-        url = SEND_MESSAGE_URL_FORMAT.format(text=encoded_text)
-
+        url = SEND_URL + ad.to_send_query(CHAT_ID)
         response = requests.get(url)
 
         if response.status_code == 429:
@@ -146,7 +197,7 @@ def post_new_ads():
 
 
 if __name__ == '__main__':
-    log(f'Application is starting\nQUERY_URL={QUERY_URL}\nPOLL_INTERVAL={POLL_INTERVAL}')
+    log(f'Application is starting\nOLX_URL={OLX_URL}\nPOLL_INTERVAL={POLL_INTERVAL}')
 
     while True:
         post_new_ads()
