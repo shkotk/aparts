@@ -78,6 +78,7 @@ class Ad:
     def _get_text(self) -> str:
         return f'''
 [{Ad._markdown_escape(self.title)}]({self.url})
+
 💰 *{Ad._markdown_escape(self.price)}*
 🏠 {Ad._markdown_escape(self.area)}
 ➕ `{Ad._markdown_escape(self.created.isoformat())}`
