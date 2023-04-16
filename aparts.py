@@ -45,6 +45,7 @@ class Ad:
     title: str
     url: str
     price: str
+    area: str
     created: datetime
     refreshed: datetime
     is_promoted: bool
@@ -78,6 +79,7 @@ class Ad:
         return f'''
 [{Ad._markdown_escape(self.title)}]({self.url})
 💰 *{Ad._markdown_escape(self.price)}*
+🏠 {Ad._markdown_escape(self.area)}
 ➕ `{Ad._markdown_escape(self.created.isoformat())}`
 🔄 `{Ad._markdown_escape(self.refreshed.isoformat())}`
 
@@ -134,6 +136,7 @@ def get_ads():
                 title=olxAd['title'],
                 url=olxAd['url'],
                 price=olxAd['price']['displayValue'],
+                area=next((x['value'] for x in olxAd['params'] if x['key'] == 'total_area'), 'N/A'),
                 created=datetime.fromisoformat(olxAd['createdTime']),
                 refreshed=datetime.fromisoformat(olxAd['lastRefreshTime']),
                 is_promoted=olxAd['isPromoted'],
