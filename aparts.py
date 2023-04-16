@@ -31,7 +31,9 @@ MAX_REFRESH_TIME_REDIS_KEY = f'MRT_{CITY}_{CHAT_ID}'
 
 
 REDIS_CONNECTION = redis.Redis(host=REDIS_HOST, port=6379, decode_responses=True)
-HIGHLIGHT_RULES = highlights.parse_rules(json.loads(HIGHLIGHT_RULES_CONFIG))
+HIGHLIGHT_RULES = []
+if HIGHLIGHT_RULES_CONFIG != '':
+    HIGHLIGHT_RULES = highlights.parse_rules(json.loads(HIGHLIGHT_RULES_CONFIG))
 
 
 def log(message: str):

@@ -47,9 +47,6 @@ class PropRule:
 
 
 def parse_rules(config: list) -> list:
-    if len(config) == 0:
-        return []
-
     rules = []
     for rule_config in config:
         rule_type = rule_config['type']
